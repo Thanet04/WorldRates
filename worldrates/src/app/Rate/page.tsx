@@ -13,6 +13,7 @@ export default function RatePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [search, setSearch] = useState<string>("");
+  const [countryInfo, setCountryInfo] = useState<{ [currency: string]: { country: string; flag: string }[] }>({});
 
   useEffect(() => {
     fetch(API_URL)
@@ -28,6 +29,43 @@ export default function RatePage() {
       });
   }, []);
 
+  // ดึงข้อมูลประเทศและธงจาก Restcountries API ตามสกุลเงิน
+  useEffect(() => {
+    async function fetchCountryInfo() {
+      const info: { [currency: string]: { country: string; flag: string }[] } = {};
+      await Promise.all(
+        currencies.map(async (cur) => {
+          try {
+            const res = await fetch(`https://restcountries.com/v3.1/currency/${cur}`);
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+              // filter เฉพาะประเทศที่ใช้ cur เป็นค่าเงินหลัก (มี currencies key เดียวและตรงกับ cur)
+              const filtered = data.filter((country: any) => {
+                if (!country.currencies) return false;
+                const keys = Object.keys(country.currencies);
+                return keys.length === 1 && keys[0] === cur;
+              });
+              info[cur] = (filtered.length > 0 ? filtered : []).map((country: any) => ({
+                country: country.translations?.tha?.common || country.name.common,
+                flag: country.flags?.png || country.flags?.svg || "",
+              }));
+              // ถ้าไม่มีประเทศไหนใช้เป็นหลักเลย ไม่ต้องแสดง
+              if (filtered.length === 0) {
+                info[cur] = [];
+              }
+            } else {
+              info[cur] = [{ country: "-", flag: "" }];
+            }
+          } catch {
+            info[cur] = [{ country: "-", flag: "" }];
+          }
+        })
+      );
+      setCountryInfo(info);
+    }
+    if (currencies.length > 0) fetchCountryInfo();
+  }, [currencies]);
+
   useEffect(() => {
     if (rates[from] && rates[to]) {
       const usdAmount = amount / rates[from];
@@ -38,30 +76,6 @@ export default function RatePage() {
   if (loading) return <div>กำลังโหลดข้อมูล...</div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
-  // Mapping สำหรับสกุลเงินหลัก (ตัวอย่าง 20 รายการ)
-  const currencyCountryMap: { [currency: string]: { country: string; flag: string } } = {
-    USD: { country: "United States", flag: "🇺🇸" },
-    EUR: { country: "European Union", flag: "🇪🇺" },
-    THB: { country: "Thailand", flag: "🇹🇭" },
-    JPY: { country: "Japan", flag: "🇯🇵" },
-    GBP: { country: "United Kingdom", flag: "🇬🇧" },
-    AUD: { country: "Australia", flag: "🇦🇺" },
-    CAD: { country: "Canada", flag: "🇨🇦" },
-    CHF: { country: "Switzerland", flag: "🇨🇭" },
-    CNY: { country: "China", flag: "🇨🇳" },
-    HKD: { country: "Hong Kong", flag: "🇭🇰" },
-    SGD: { country: "Singapore", flag: "🇸🇬" },
-    NZD: { country: "New Zealand", flag: "🇳🇿" },
-    SEK: { country: "Sweden", flag: "🇸🇪" },
-    KRW: { country: "South Korea", flag: "🇰🇷" },
-    INR: { country: "India", flag: "🇮🇳" },
-    RUB: { country: "Russia", flag: "🇷🇺" },
-    ZAR: { country: "South Africa", flag: "🇿🇦" },
-    TRY: { country: "Turkey", flag: "🇹🇷" },
-    BRL: { country: "Brazil", flag: "🇧🇷" },
-    MXN: { country: "Mexico", flag: "🇲🇽" },
-  };
-
   return (
     <div className="w-full bg-white min-h-screen flex flex-col">
       <div className="flex flex-col items-center flex-1">
@@ -69,8 +83,8 @@ export default function RatePage() {
           <h1 className="text-2xl font-bold text-blue-700">อัตราแลกเปลี่ยนเงินตราทั่วโลก</h1>
           <input
             type="text"
-            placeholder="ค้นหาสกุลเงิน..."
-            className="border rounded px-3 py-1 bg-blue-50 text-black font-semibold shadow-sm mt-2 md:mt-0 mr-2 md:mr-0"
+            placeholder="ค้นหาสกุลเงิน , ประเทศ"
+            className="border rounded px-3 py-1 bg-blue-50 text-black mt-2 md:mt-0 mr-2 md:mr-0"
             style={{ minWidth: 180 }}
             value={search}
             onChange={e => setSearch(e.target.value.toUpperCase())}
@@ -85,19 +99,25 @@ export default function RatePage() {
                   <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300" style={{ width: 100 }}>สกุลเงิน</th>
                   <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300" style={{ width: 160 }}>ประเทศ</th>
                   <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300" style={{ width: 60 }}>ธง</th>
-                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300 rounded-tr-2xl" style={{ width: 120 }}>เทียบกับ USD</th>
+                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300 rounded-tr-2xl" style={{ width: 120 }}>1 หน่วย = USD</th>
                 </tr>
               </thead>
               <tbody>
                 {currencies
-                  .filter(cur => cur.includes(search))
                   .map((cur, idx) => {
-                    const info = currencyCountryMap[cur] || { country: "-", flag: "🌐" };
-                    return (
+                    const infoArr = countryInfo[cur] || [{ country: "-", flag: "" }];
+                    // filter เฉพาะประเทศที่ตรงกับ search
+                    const filteredInfoArr = infoArr.filter(
+                      info =>
+                        (!search || cur.includes(search)) ||
+                        (info.country && info.country.toUpperCase().includes(search))
+                    );
+                    if (filteredInfoArr.length === 0) return null;
+                    return filteredInfoArr.map((info, i) => (
                       <tr
-                        key={cur}
+                        key={cur + i}
                         className={
-                          (idx % 2 === 0
+                          ((idx % 2 === 0)
                             ? "bg-blue-100 hover:bg-blue-200"
                             : "bg-yellow-100 hover:bg-yellow-200") + " border-b border-white"
                         }
@@ -105,10 +125,12 @@ export default function RatePage() {
                         <td className="px-2 py-1 text-center text-gray-500">{idx + 1}</td>
                         <td className="px-2 py-1 font-mono text-blue-900 font-semibold">{cur}</td>
                         <td className="px-2 py-1 text-gray-800">{info.country}</td>
-                        <td className="px-2 py-1 text-2xl text-center">{info.flag}</td>
-                        <td className="px-2 py-1 text-yellow-700 font-bold">{rates[cur]}</td>
+                        <td className="px-2 py-1 text-center">
+                          {info.flag ? <img src={info.flag} alt={info.country} width={24} height={18} style={{ display: "inline-block" }} /> : "-"}
+                        </td>
+                        <td className="px-2 py-1 text-yellow-700 font-bold">{(1 / rates[cur]).toLocaleString(undefined, { maximumFractionDigits: 6 })}</td>
                       </tr>
-                    );
+                    ));
                   })}
               </tbody>
             </table>
@@ -150,7 +172,7 @@ export default function RatePage() {
           {amount} {from} = {result ? result.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "-"} {to}
         </div>
       </div>
-      <div className="text-xs text-gray-400 mt-4">ข้อมูลจาก <a href="https://www.exchangerate-api.com/" className="underline text-blue-500" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a></div>
+      <div className="text-md text-gray-400 mt-4">ข้อมูลจาก <a href="https://www.exchangerate-api.com/" className="underline text-blue-500" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a></div>
     </div>
   );
 }
