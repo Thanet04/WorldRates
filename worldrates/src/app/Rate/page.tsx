@@ -63,59 +63,60 @@ export default function RatePage() {
   };
 
   return (
-    <div className="w-full bg-white">
-      <div className="flex flex-col items-center">
-        <h1 className="text-2xl font-bold mb-4 text-blue-700 drop-shadow">อัตราแลกเปลี่ยนเงินตราทั่วโลก</h1>
-        <div className="w-full max-w-2xl relative mb-6">
+    <div className="w-full bg-white min-h-screen flex flex-col">
+      <div className="flex flex-col items-center flex-1">
+        <div className="w-full my-6 flex flex-col md:flex-row items-center justify-between px-8 gap-2">
+          <h1 className="text-2xl font-bold text-blue-700">อัตราแลกเปลี่ยนเงินตราทั่วโลก</h1>
           <input
             type="text"
             placeholder="ค้นหาสกุลเงิน..."
-            className="absolute right-0 top-0 border rounded px-3 py-1 bg-blue-50 text-black font-semibold focus:ring-2 focus:ring-blue-400 shadow-sm mt-2 mr-2"
+            className="border rounded px-3 py-1 bg-blue-50 text-black font-semibold shadow-sm mt-2 md:mt-0 mr-2 md:mr-0"
             style={{ minWidth: 180 }}
             value={search}
             onChange={e => setSearch(e.target.value.toUpperCase())}
           />
-          <div className="overflow-x-auto pt-10 flex justify-center">
-            <table className="w-full border text-sm rounded-lg overflow-hidden shadow-lg max-w-2xl">
+        </div>
+        <div className="w-full max-w-2xl bg-white rounded-2xl p-4 flex flex-col items-center h-full min-h-[400px] flex-1">
+          <div className="w-full overflow-y-auto overflow-hidden h-full" style={{ maxHeight: 400 }}>
+            <table className="w-full text-sm rounded-2xl">
               <thead>
-                <tr className="bg-gradient-to-r from-blue-400 to-yellow-300">
-                  <th className="border px-2 py-1 text-white">#</th>
-                  <th className="border px-2 py-1 text-white">สกุลเงิน</th>
-                  <th className="border px-2 py-1 text-white">ประเทศ</th>
-                  <th className="border px-2 py-1 text-white">ธง</th>
-                  <th className="border px-2 py-1 text-white">เทียบกับ USD</th>
+                <tr>
+                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300 rounded-tl-2xl" style={{ width: 40 }}>#</th>
+                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300" style={{ width: 100 }}>สกุลเงิน</th>
+                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300" style={{ width: 160 }}>ประเทศ</th>
+                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300" style={{ width: 60 }}>ธง</th>
+                  <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300 rounded-tr-2xl" style={{ width: 120 }}>เทียบกับ USD</th>
                 </tr>
               </thead>
               <tbody>
                 {currencies
                   .filter(cur => cur.includes(search))
-                  .slice(0, 20)
                   .map((cur, idx) => {
                     const info = currencyCountryMap[cur] || { country: "-", flag: "🌐" };
                     return (
                       <tr
                         key={cur}
                         className={
-                          idx % 2 === 0
+                          (idx % 2 === 0
                             ? "bg-blue-100 hover:bg-blue-200"
-                            : "bg-yellow-100 hover:bg-yellow-200"
+                            : "bg-yellow-100 hover:bg-yellow-200") + " border-b border-white"
                         }
                       >
-                        <td className="border px-2 py-1 text-center text-gray-500">{idx + 1}</td>
-                        <td className="border px-2 py-1 font-mono text-blue-900 font-semibold">{cur}</td>
-                        <td className="border px-2 py-1 text-gray-800">{info.country}</td>
-                        <td className="border px-2 py-1 text-2xl text-center">{info.flag}</td>
-                        <td className="border px-2 py-1 text-yellow-700 font-bold">{rates[cur]}</td>
+                        <td className="px-2 py-1 text-center text-gray-500">{idx + 1}</td>
+                        <td className="px-2 py-1 font-mono text-blue-900 font-semibold">{cur}</td>
+                        <td className="px-2 py-1 text-gray-800">{info.country}</td>
+                        <td className="px-2 py-1 text-2xl text-center">{info.flag}</td>
+                        <td className="px-2 py-1 text-yellow-700 font-bold">{rates[cur]}</td>
                       </tr>
                     );
                   })}
               </tbody>
             </table>
           </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">* แสดง 20 สกุลเงินแรกที่ค้นหา</div>
+          <div className="text-xs text-gray-500 mt-1 text-center">* แสดงทั้งหมด {currencies.filter(cur => cur.includes(search)).length} สกุลเงิน</div>
         </div>
       </div>
-      <div className="mt-8">
+      <div className="flex flex-col items-center mt-8">
         <h2 className="text-xl font-semibold mb-2 text-yellow-600">แปลงค่าเงิน</h2>
         <div className="flex flex-col md:flex-row gap-2 items-center mb-2">
           <input
@@ -145,7 +146,7 @@ export default function RatePage() {
             ))}
           </select>
         </div>
-        <div className="mt-2 text-lg font-bold text-yellow-700 drop-shadow">
+        <div className="mt-2 text-lg font-bold text-yellow-700 ">
           {amount} {from} = {result ? result.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "-"} {to}
         </div>
       </div>
