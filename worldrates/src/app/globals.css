@@ -24,3 +24,77 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide scroll indicator (arrow/triangle) in Chrome/Safari */
+.hide-scroll-indicator::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+/* Minimal scrollbar style (optional) */
+.hide-scroll-indicator::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.hide-scroll-indicator::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 8px;
+}
+
+/* Dark mode support */
+.dark {
+  --bg-main: #18181b;
+  --bg-card: #23232b;
+  --text-main: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --border-main: #333;
+  --table-header: linear-gradient(90deg, #334155 0%, #64748b 100%);
+  --table-row-even: #23232b;
+  --table-row-odd: #18181b;
+}
+
+body, html {
+  background: var(--bg-main);
+  color: var(--text-main);
+  /* ซ่อน scroll indicator ทั่วทั้งหน้า */
+  scrollbar-width: thin;
+}
+
+body.hide-scroll-indicator::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.dark .bg-white, .dark .bg-white\/80 {
+  background: var(--bg-card) !important;
+}
+
+.dark .text-blue-700 {
+  color: #60a5fa !important;
+}
+
+.dark .text-yellow-700 {
+  color: #fde047 !important;
+}
+
+.dark .border-black {
+  border-color: #333 !important;
+}
+
+.dark .bg-gradient-to-r {
+  background: var(--table-header) !important;
+}
+
+.dark .bg-blue-100, .dark .bg-yellow-100 {
+  background: var(--table-row-even) !important;
+}
+
+.dark .bg-blue-200, .dark .bg-yellow-200 {
+  background: var(--table-row-odd) !important;
+}
+
+.dark .shadow, .dark .shadow-lg {
+  box-shadow: 0 2px 8px 0 #0006 !important;
+}
