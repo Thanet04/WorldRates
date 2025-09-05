@@ -1,22 +1,22 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Line, Bar } from 'react-chartjs-2';
-import { saveAs } from 'file-saver';
-import * as XLSX from 'xlsx';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { useRef } from 'react';
 import {
-  Chart as ChartJS,
+  BarElement,
   CategoryScale,
+  Chart,
+  Chart as ChartJS,
+  Legend,
+  LineElement,
   LinearScale,
   PointElement,
-  LineElement,
-  BarElement,
   Title,
   Tooltip,
-  Legend,
 } from 'chart.js';
+import { saveAs } from 'file-saver';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import React, { useEffect, useRef, useState } from "react";
+import { Bar, Line } from 'react-chartjs-2';
+import * as XLSX from 'xlsx';
 import { LANGS } from "../i18n";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
@@ -41,8 +41,8 @@ export default function RatePage() {
   const [currentLang, setCurrentLang] = useState<'en'|'th'|'jp'>('en');
 
   // สำหรับ export กราฟเป็นรูป
-  const historyChartRef = useRef<any>(null);
-  const currentChartRef = useRef<any>(null);
+  const historyChartRef = useRef<Chart<'line'>>(null);
+  const currentChartRef = useRef<Chart<'bar'>>(null);
 
   useEffect(() => {
     fetch(API_URL)
@@ -67,15 +67,24 @@ export default function RatePage() {
             const res = await fetch(`https://restcountries.com/v3.1/currency/${cur}`);
             const data = await res.json();
             if (Array.isArray(data) && data.length > 0) {
-              const filtered = data.filter((country: any) => {
-                if (!country.currencies) return false;
-                const keys = Object.keys(country.currencies);
+              const filtered = (data as Array<Record<string, unknown>>).filter((country) => {
+                if (!("currencies" in country) || typeof country.currencies !== "object") return false;
+                const keys = Object.keys(country.currencies as object);
                 return keys.length === 1 && keys[0] === cur;
               });
-              info[cur] = (filtered.length > 0 ? filtered : []).map((country: any) => ({
-                country: country.translations?.tha?.common || country.name.common,
-                flag: country.flags?.png || country.flags?.svg || "",
-              }));
+  
+              info[cur] = (filtered.length > 0 ? filtered : []).map((country) => {
+                const c = country as {
+                  translations?: { tha?: { common?: string } };
+                  name?: { common?: string };
+                  flags?: { png?: string; svg?: string };
+                };
+  
+                return {
+                  country: c.translations?.tha?.common || c.name?.common || "-",
+                  flag: c.flags?.png || c.flags?.svg || "",
+                };
+              });
               if (filtered.length === 0) {
                 info[cur] = [];
               }
@@ -100,7 +109,7 @@ export default function RatePage() {
   }, [amount, from, to, rates]);
 
   useEffect(() => {
-    let startDate = new Date();
+    const startDate = new Date();
     if (historyRange === '7d') startDate.setDate(startDate.getDate() - 7);
     else if (historyRange === '30d') startDate.setDate(startDate.getDate() - 30);
     else if (historyRange === '1y') startDate.setFullYear(startDate.getFullYear() - 1);
@@ -145,7 +154,7 @@ export default function RatePage() {
 
   // Export ตารางเป็น CSV
   function exportTableCSV() {
-    const rows: any[][] = [];
+    const rows: (string | number)[][] = [];
     rows.push(['#', t.table.currency, 'Symbol', t.table.country, t.table.flag, t.table.rate]);
     currencies.forEach((cur, idx) => {
       const infoArr = countryInfo[cur] || [{ country: '-', flag: '' }];
@@ -170,7 +179,7 @@ export default function RatePage() {
 
   // Export ตารางเป็น Excel
   function exportTableExcel() {
-    const rows: any[][] = [];
+    const rows: (string | number)[][] = [];
     rows.push(['#', t.table.currency, 'Symbol', t.table.country, t.table.flag, t.table.rate]);
     currencies.forEach((cur, idx) => {
       const infoArr = countryInfo[cur] || [{ country: '-', flag: '' }];
@@ -194,7 +203,7 @@ export default function RatePage() {
   // Export ตารางเป็น PDF
   function exportTablePDF() {
     const doc = new jsPDF();
-    const rows: any[][] = [];
+    const rows: (string | number)[][] = [];
     currencies.forEach((cur, idx) => {
       const infoArr = countryInfo[cur] || [{ country: '-', flag: '' }];
       infoArr.forEach((info) => {
@@ -216,7 +225,7 @@ export default function RatePage() {
   }
 
   // Export กราฟเป็น PNG
-  function exportChartImage(ref: any, filename: string) {
+  function exportChartImage(ref: React.RefObject<Chart<"line"> | Chart<"bar"> | null>, filename: string) {
     if (ref.current) {
       const url = ref.current.toBase64Image();
       const a = document.createElement('a');
@@ -226,11 +235,15 @@ export default function RatePage() {
     }
   }
 
+  const SearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+  };
+
   return (
     <div className="w-full min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-transparent px-2 sm:px-4">
       <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 flex gap-2 items-center">
         <span className="text-lg text-gray-500">{t.language}</span>
-        <select value={currentLang} onChange={e => setCurrentLang(e.target.value as any)} className="border rounded px-3 py-1 shadow-sm bg-white border-black">
+        <select value={currentLang} onChange={e => setCurrentLang(e.target.value as "en" | "th" | "jp")} className="border rounded px-3 py-1 shadow-sm bg-white border-black">
           <option value="en">EN</option>
           <option value="th">TH</option>
           <option value="jp">JP</option>
@@ -324,6 +337,15 @@ export default function RatePage() {
           </div>
         </div>
         <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col items-center px-0 md:px-4">
+        <div className="w-full flex justify-end mb-4">
+          <input
+            type="text"
+            placeholder={t.search}
+            value={search}
+            onChange={SearchChange}
+            className="border border-white text-white px-3 py-2 rounded shadow text-sm w-64 focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
           <div className="w-full overflow-x-auto overflow-y-auto overflow-hidden hide-scroll-indicator rounded-2xl" style={{ maxHeight: 400 }}>
             <table className="min-w-[600px] w-full text-xs sm:text-sm rounded-2xl">
               <thead>
@@ -343,7 +365,7 @@ export default function RatePage() {
                     const filteredInfoArr = infoArr.filter(
                       info =>
                         (!search || cur.includes(search)) ||
-                        (info.country && info.country.toUpperCase().includes(search))
+                        (info.country && info.country.toLowerCase().includes(search.toLowerCase()))
                     );
                     if (filteredInfoArr.length === 0) return null;
                     return filteredInfoArr.map((info, i) => (
@@ -368,8 +390,17 @@ export default function RatePage() {
                   })}
               </tbody>
             </table>
+
+            {currencies.every(cur => {
+                const infoArr = countryInfo[cur] || [{ country: "-", flag: "" }];
+                return !infoArr.some(info =>
+                  (!search || cur.toLowerCase().includes(search.toLowerCase())) ||
+                  (info.country && info.country.toLowerCase().includes(search.toLowerCase()))
+                );
+              }) && (
+                <div className="text-lg text-white/80 text-center my-4 ">{t.table.noData}</div>
+              )}
           </div>
-          {/* <div className="text-xs text-gray-500 mt-1 text-center">* {t.table.noData}</div> */}
           <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col md:flex-row items-center gap-2 sm:gap-4 mt-4 sm:mt-6 px-0 md:px-4">
             <span className="font-semibold text-blue-700 dark:text-blue-300 text-lg md:text-xl whitespace-nowrap">{t.converter}</span>
           <input
