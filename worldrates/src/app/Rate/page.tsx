@@ -129,7 +129,10 @@ export default function RatePage() {
     else document.documentElement.classList.remove('dark');
   }, [dark]);
 
-  if (loading) return <div>กำลังโหลดข้อมูล...</div>;
+  if (loading) return 
+  <div className="text-lg text-center text-gray-400">
+    กำลังโหลดข้อมูล...
+    </div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   const t = LANGS[currentLang];
@@ -224,12 +227,13 @@ export default function RatePage() {
   }
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-transparent px-4">
-      <div className="absolute top-4 right-4 z-20 flex gap-2 items-center">
-        <select value={currentLang} onChange={e => setCurrentLang(e.target.value as any)} className="border rounded px-2 py-1 shadow-sm bg-white border-black">
-          <option value="en">{LANGS.en.flag} EN</option>
-          <option value="th">{LANGS.th.flag} TH</option>
-          <option value="jp">{LANGS.jp.flag} JP</option>
+    <div className="w-full min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-transparent px-2 sm:px-4">
+      <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 flex gap-2 items-center">
+        <span className="text-lg text-gray-500">{t.language}</span>
+        <select value={currentLang} onChange={e => setCurrentLang(e.target.value as any)} className="border rounded px-3 py-1 shadow-sm bg-white border-black">
+          <option value="en">EN</option>
+          <option value="th">TH</option>
+          <option value="jp">JP</option>
         </select>
         <button
           className="border rounded-full px-2 py-1 bg-gray-200 dark:bg-gray-700 text-black dark:text-white shadow-sm hover:scale-110 transition"
@@ -239,18 +243,17 @@ export default function RatePage() {
           {dark ? '🌙' : '☀️'}
         </button>
       </div>
-      <div className="w-full flex flex-col gap-8 items-center justify-center py-8 px-4 md:px-0">
+      <div className="w-full flex flex-col gap-6 sm:gap-8 items-center justify-center py-4 sm:py-8 px-0 sm:px-0">
         <h1 className="text-3xl md:text-4xl font-extrabold text-blue-700 dark:text-blue-300 text-center drop-shadow mb-2">{t.title}</h1>
-        {/* Export/Download buttons (top of page) */}
-        <div className="w-full flex flex-wrap gap-2 justify-end mb-6">
+        <div className="w-full flex flex-wrap gap-2 justify-end mb-4 sm:mb-6 px-1">
           <button onClick={exportTableCSV} className="px-3 py-1 rounded bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold border border-blue-300">Export CSV</button>
           <button onClick={exportTableExcel} className="px-3 py-1 rounded bg-green-100 hover:bg-green-200 text-green-800 font-semibold border border-green-300">Export Excel</button>
           <button onClick={exportTablePDF} className="px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 font-semibold border border-red-300">Export PDF</button>
           <button onClick={() => exportChartImage(historyChartRef, 'historical-chart.png')} className="px-3 py-1 rounded bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-semibold border border-yellow-300">Download Historical Chart</button>
           <button onClick={() => exportChartImage(currentChartRef, 'current-chart.png')} className="px-3 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold border border-purple-300">Download Current Chart</button>
         </div>
-        <div className="w-full flex flex-col md:flex-row gap-6 px-0 md:px-4">
-          <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-6 flex flex-col gap-2 px-0 md:px-4">
+        <div className="w-full flex flex-col md:flex-row gap-4 sm:gap-6 px-0 md:px-4">
+          <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col gap-2 px-0 md:px-4">
             <div className="flex flex-row flex-wrap items-center gap-4 mb-2">
               <span className="font-semibold text-blue-700 dark:text-blue-300 text-lg whitespace-nowrap">{t.historical}</span>
               <button className={historyRange === '7d' ? 'bg-blue-500 text-white px-2 py-1 rounded shadow' : 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white px-2 py-1 rounded shadow'} onClick={() => setHistoryRange('7d')}>{t.days7}</button>
@@ -291,8 +294,8 @@ export default function RatePage() {
               />
             )}
           </div>
-          <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-6 flex flex-col gap-2 px-0 md:px-4">
-            <span className="font-semibold text-blue-700 dark:text-blue-300 text-lg mb-2">Current Exchange Rates (USD Base)</span>
+          <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col gap-2 px-0 md:px-4 mt-4 md:mt-0">
+            <span className="font-semibold text-blue-700 dark:text-blue-300 text-lg mb-2">{t.current}</span>
             <Bar
               ref={currentChartRef}
               data={{
@@ -320,9 +323,9 @@ export default function RatePage() {
             />
           </div>
         </div>
-        <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-6 flex flex-col items-center px-0 md:px-4">
-          <div className="w-full overflow-y-auto overflow-hidden hide-scroll-indicator rounded-2xl" style={{ maxHeight: 400 }}>
-            <table className="w-full text-sm rounded-2xl">
+        <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col items-center px-0 md:px-4">
+          <div className="w-full overflow-x-auto overflow-y-auto overflow-hidden hide-scroll-indicator rounded-2xl" style={{ maxHeight: 400 }}>
+            <table className="min-w-[600px] w-full text-xs sm:text-sm rounded-2xl">
               <thead>
                 <tr>
                   <th className="px-2 py-1 text-white sticky top-0 z-10 bg-gradient-to-r from-blue-400 to-yellow-300 border-r border-black" style={{ width: 40 }}>#</th>
@@ -366,23 +369,23 @@ export default function RatePage() {
               </tbody>
             </table>
           </div>
-          <div className="text-xs text-gray-500 mt-1 text-center">* {t.table.noData}</div>
-          <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center gap-4 mt-6 px-0 md:px-4">
+          {/* <div className="text-xs text-gray-500 mt-1 text-center">* {t.table.noData}</div> */}
+          <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col md:flex-row items-center gap-2 sm:gap-4 mt-4 sm:mt-6 px-0 md:px-4">
             <span className="font-semibold text-blue-700 dark:text-blue-300 text-lg md:text-xl whitespace-nowrap">{t.converter}</span>
-            <input
-              type="number"
+          <input
+            type="number"
               className="border rounded px-3 py-2 w-32 text-lg font-bold text-blue-900 dark:text-blue-200 bg-blue-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-400"
-              value={amount}
-              min={0}
+            value={amount}
+            min={0}
               onChange={e => setAmount(Number(e.target.value))}
-            />
-            <select
+          />
+          <select
               className="border rounded px-2 py-2 bg-yellow-50 dark:bg-gray-800 text-yellow-800 dark:text-yellow-200 font-semibold focus:ring-2 focus:ring-yellow-400 hide-scroll-indicator"
-              value={from}
+            value={from}
               onChange={e => setFrom(e.target.value)}
-            >
+          >
               {currencies.map(cur => <option key={cur} value={cur}>{currencySymbolMap[cur] ? `${currencySymbolMap[cur]} ` : ''}{cur}</option>)}
-            </select>
+          </select>
             <button
               type="button"
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-3 py-2 rounded-full shadow transition text-xl"
@@ -391,17 +394,17 @@ export default function RatePage() {
             >
               ⇄
             </button>
-            <select
+          <select
               className="border rounded px-2 py-2 bg-blue-50 dark:bg-gray-800 text-blue-900 dark:text-blue-200 font-semibold focus:ring-2 focus:ring-blue-400 hide-scroll-indicator"
-              value={to}
+            value={to}
               onChange={e => setTo(e.target.value)}
-            >
+          >
               {currencies.map(cur => <option key={cur} value={cur}>{currencySymbolMap[cur] ? `${currencySymbolMap[cur]} ` : ''}{cur}</option>)}
-            </select>
+          </select>
             <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300 min-w-[120px] text-center">
               {amount} {from} = {result ? result.toLocaleString(undefined, { maximumFractionDigits: 4 }) : "-"} {to}
             </div>
-          </div>
+        </div>
         </div>
         <div className="text-md text-gray-400 mt-4 mb-8">{t.source} <a href="https://www.exchangerate-api.com/" className="underline text-blue-500" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a></div>
       </div>
