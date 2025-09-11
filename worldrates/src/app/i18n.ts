@@ -13,6 +13,7 @@ export const LANGS = {
     year1: "1 year",
     from: "From",
     to: "To",
+    clear: "Clear",
     result: "Result",
     table: {
       currency: "Currency",
@@ -36,6 +37,7 @@ export const LANGS = {
     year1: "1 ปี",
     from: "จาก",
     to: "เป็น",
+    clear: "ล้าง",
     result: "ผลลัพธ์",
     table: {
       currency: "สกุลเงิน",
@@ -59,6 +61,7 @@ export const LANGS = {
     year1: "1年",
     from: "から",
     to: "へ",
+    clear: "クリア",
     result: "結果",
     table: {
       currency: "通貨",

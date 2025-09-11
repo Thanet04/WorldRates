@@ -39,6 +39,8 @@ export default function RatePage() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [dark, setDark] = useState(false);
   const [currentLang, setCurrentLang] = useState<'en'|'th'|'jp'>('en');
+  const [searchInput, setSearchInput] = useState<string>("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // สำหรับ export กราฟเป็นรูป
   const historyChartRef = useRef<Chart<'line'>>(null);
@@ -139,9 +141,9 @@ export default function RatePage() {
   }, [dark]);
 
   if (loading) return 
-  <div className="text-lg text-center text-gray-400">
-    กำลังโหลดข้อมูล...
-    </div>;
+  <div className="w-full min-h-screen flex items-center justify-center bg-white">
+    <div className="text-lg text-center text-black">กำลังโหลดข้อมูล...</div>
+  </div>;
   if (error) return <div className="text-red-500">{error}</div>;
 
   const t = LANGS[currentLang];
@@ -235,14 +237,84 @@ export default function RatePage() {
     }
   }
 
+  // Export Current Chart: white background, black ticks/grid, black bars
+  function exportCurrentChartWithWhiteBg() {
+    const chart = currentChartRef.current as Chart<'bar'> | null;
+    if (!chart) return;
+
+    // snapshot originals
+    const originalOptions = JSON.parse(JSON.stringify(chart.options));
+    const originalPlugins = (chart.config.plugins || []).slice();
+    const originalDatasetColors = chart.data.datasets.map(ds => (ds as any).backgroundColor);
+
+    // enforce export styling
+    chart.options.plugins = chart.options.plugins || {} as any;
+    (chart.options.plugins as any).legend = { ...(chart.options.plugins as any).legend, labels: { color: '#000000' } };
+    (chart.options.plugins as any).title = { ...(chart.options.plugins as any).title, color: '#000000' };
+    if (chart.options.scales) {
+      const scales: any = chart.options.scales;
+      if (scales.x) {
+        scales.x.ticks = { ...(scales.x.ticks || {}), color: '#000000' };
+        scales.x.grid = { ...(scales.x.grid || {}), color: 'rgba(0,0,0,0.1)' };
+      }
+      if (scales.y) {
+        scales.y.ticks = { ...(scales.y.ticks || {}), color: '#000000' };
+        scales.y.grid = { ...(scales.y.grid || {}), color: 'rgba(0,0,0,0.1)' };
+      }
+    }
+    chart.data.datasets.forEach((ds, i) => {
+      (ds as any).backgroundColor = '#000000';
+    });
+
+    // plugin to paint white background
+    const whiteBackgroundPlugin: any = {
+      id: 'whiteBackgroundForExport',
+      beforeDraw(c: any) {
+        const ctx = c.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.restore();
+      },
+    };
+    chart.config.plugins = [...originalPlugins, whiteBackgroundPlugin];
+
+    chart.update();
+    const url = chart.toBase64Image();
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'current-chart.png';
+    a.click();
+
+    // restore
+    chart.options = originalOptions as any;
+    chart.config.plugins = originalPlugins;
+    chart.data.datasets.forEach((ds, i) => {
+      (ds as any).backgroundColor = originalDatasetColors[i];
+    });
+    chart.update();
+  }
+
   const SearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+    setSearchInput(e.target.value);
+  };
+  const onSearchEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      setSearch(searchInput);
+    }
+  };
+  const clearSearch = () => {
+    setSearchInput("");
+    setSearch("");
+    if (searchInputRef.current) searchInputRef.current.focus();
   };
 
   return (
-    <div className="w-full min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-transparent px-2 sm:px-4">
+    <div className="w-full min-h-screen flex flex-col items-center justify-center relative overflow-hidden bg-white px-2 sm:px-4">
       <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 flex gap-2 items-center">
-        <span className="text-lg text-gray-500">{t.language}</span>
+        <span className="text-lg">{t.language}</span>
         <select value={currentLang} onChange={e => setCurrentLang(e.target.value as "en" | "th" | "jp")} className="border rounded px-3 py-1 shadow-sm bg-white border-black">
           <option value="en">EN</option>
           <option value="th">TH</option>
@@ -263,7 +335,7 @@ export default function RatePage() {
           <button onClick={exportTableExcel} className="px-3 py-1 rounded bg-green-100 hover:bg-green-200 text-green-800 font-semibold border border-green-300">Export Excel</button>
           <button onClick={exportTablePDF} className="px-3 py-1 rounded bg-red-100 hover:bg-red-200 text-red-800 font-semibold border border-red-300">Export PDF</button>
           <button onClick={() => exportChartImage(historyChartRef, 'historical-chart.png')} className="px-3 py-1 rounded bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-semibold border border-yellow-300">Download Historical Chart</button>
-          <button onClick={() => exportChartImage(currentChartRef, 'current-chart.png')} className="px-3 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold border border-purple-300">Download Current Chart</button>
+          <button onClick={exportCurrentChartWithWhiteBg} className="px-3 py-1 rounded bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold border border-purple-300">Download Current Chart</button>
         </div>
         <div className="w-full flex flex-col md:flex-row gap-4 sm:gap-6 px-0 md:px-4">
           <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col gap-2 px-0 md:px-4">
@@ -274,9 +346,9 @@ export default function RatePage() {
               <button className={historyRange === '1y' ? 'bg-blue-500 text-white px-2 py-1 rounded shadow' : 'bg-gray-200 dark:bg-gray-700 text-black dark:text-white px-2 py-1 rounded shadow'} onClick={() => setHistoryRange('1y')}>{t.year1}</button>
             </div>
             {historyLoading ? (
-              <div className="text-center text-gray-400">Loading chart...</div>
+              <div className="text-center text-white">Loading chart...</div>
             ) : historyData.data.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">{t.table.noData}</div>
+              <div className="text-center text-white py-8">{t.table.noData}</div>
             ) : (
               <Line
                 ref={historyChartRef}
@@ -324,12 +396,22 @@ export default function RatePage() {
               options={{
                 responsive: true,
                 plugins: {
-                  legend: { display: false },
-                  title: { display: false },
+                  legend: { display: false, labels: { color: '#ffffff' } },
+                  title: { display: false, color: '#ffffff' },
                 },
                 scales: {
-                  x: { display: true, title: { display: false }, ticks: { maxTicksLimit: 10, autoSkip: true } },
-                  y: { display: true, title: { display: false } },
+                  x: {
+                    display: true,
+                    title: { display: false },
+                    ticks: { maxTicksLimit: 10, autoSkip: true, color: '#ffffff' },
+                    grid: { color: 'rgba(255,255,255,0.2)' },
+                  },
+                  y: {
+                    display: true,
+                    title: { display: false },
+                    ticks: { color: '#ffffff' },
+                    grid: { color: 'rgba(255,255,255,0.2)' },
+                  },
                 },
               }}
               height={80}
@@ -337,14 +419,24 @@ export default function RatePage() {
           </div>
         </div>
         <div className="w-full bg-white/80 dark:bg-gray-900/80 rounded-2xl shadow-lg p-3 sm:p-6 flex flex-col items-center px-0 md:px-4">
-        <div className="w-full flex justify-end mb-4">
+        <div className="w-full flex justify-end items-center gap-2 mb-4">
           <input
             type="text"
             placeholder={t.search}
-            value={search}
+            value={searchInput ?? ""}
             onChange={SearchChange}
+            onKeyDown={onSearchEnter}
             className="border border-white text-white px-3 py-2 rounded shadow text-sm w-64 focus:ring-2 focus:ring-blue-400"
+            ref={searchInputRef}
           />
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="px-3 py-2 rounded bg-red-500 hover:bg-red-600 text-white border border-red-500"
+            title="Clear"
+          >
+            {t.clear}
+          </button>
         </div>
           <div className="w-full overflow-x-auto overflow-y-auto overflow-hidden hide-scroll-indicator rounded-2xl" style={{ maxHeight: 400 }}>
             <table className="min-w-[600px] w-full text-xs sm:text-sm rounded-2xl">
@@ -364,7 +456,7 @@ export default function RatePage() {
                     const infoArr = countryInfo[cur] || [{ country: "-", flag: "" }];
                     const filteredInfoArr = infoArr.filter(
                       info =>
-                        (!search || cur.includes(search)) ||
+                        (!search || cur.toLowerCase().includes(search.toLowerCase())) ||
                         (info.country && info.country.toLowerCase().includes(search.toLowerCase()))
                     );
                     if (filteredInfoArr.length === 0) return null;
@@ -377,7 +469,7 @@ export default function RatePage() {
                             : "bg-yellow-100 hover:bg-yellow-200") + " border-b border-white"
                         }
                       >
-                        <td className="px-2 py-1 text-center text-gray-500 border-r border-black">{idx + 1}</td>
+                        <td className="px-2 py-1 text-center text-white border-r border-black">{idx + 1}</td>
                         <td className="px-2 py-1 font-mono text-blue-900 font-semibold border-r border-black">{cur}</td>
                         <td className="px-2 py-1 text-center border-r border-black">{currencySymbolMap[cur] || '-'}</td>
                         <td className="px-2 py-1 text-center border-r border-black">{info.country}</td>
@@ -437,7 +529,7 @@ export default function RatePage() {
             </div>
         </div>
         </div>
-        <div className="text-md text-gray-400 mt-4 mb-8">{t.source} <a href="https://www.exchangerate-api.com/" className="underline text-blue-500" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a></div>
+        <div className="text-md text-whtie mt-4 mb-8">{t.source} <a href="https://www.exchangerate-api.com/" className="underline text-blue-500" target="_blank" rel="noopener noreferrer">ExchangeRate-API</a></div>
       </div>
     </div>
   );
