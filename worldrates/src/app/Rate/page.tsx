@@ -11,6 +11,7 @@ import {
   Title,
   Tooltip,
 } from 'chart.js';
+import type { ChartOptions, Plugin as ChartPlugin, ChartDataset } from 'chart.js';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -243,16 +244,27 @@ export default function RatePage() {
     if (!chart) return;
 
     // snapshot originals
-    const originalOptions = JSON.parse(JSON.stringify(chart.options));
+    const originalOptions = structuredClone(chart.options as object) as ChartOptions<'bar'>;
     const originalPlugins = (chart.config.plugins || []).slice();
-    const originalDatasetColors = chart.data.datasets.map(ds => (ds as any).backgroundColor);
+    type DatasetBg = ChartDataset<'bar', number[]>['backgroundColor'] | undefined;
+    const originalDatasetColors: DatasetBg[] = chart.data.datasets.map(ds => (ds as ChartDataset<'bar', number[]>).backgroundColor as DatasetBg);
 
     // enforce export styling
-    chart.options.plugins = chart.options.plugins || {} as any;
-    (chart.options.plugins as any).legend = { ...(chart.options.plugins as any).legend, labels: { color: '#000000' } };
-    (chart.options.plugins as any).title = { ...(chart.options.plugins as any).title, color: '#000000' };
+    type LegendOpts = { labels?: { color?: string } };
+    type TitleOpts = { color?: string };
+    type PluginsOptions = { legend?: LegendOpts; title?: TitleOpts };
+    type TickOptions = { color?: string };
+    type GridOptions = { color?: string };
+    type AxisOptions = { ticks?: TickOptions; grid?: GridOptions; title?: { color?: string } };
+    type ScalesOptions = { x?: AxisOptions; y?: AxisOptions };
+
+    chart.options.plugins = (chart.options.plugins as unknown as PluginsOptions) || {} as PluginsOptions;
+    const plugins = chart.options.plugins as unknown as PluginsOptions;
+    plugins.legend = { ...(plugins.legend || {}), labels: { ...(plugins.legend?.labels || {}), color: '#000000' } };
+    plugins.title = { ...(plugins.title || {}), color: '#000000' };
+
     if (chart.options.scales) {
-      const scales: any = chart.options.scales;
+      const scales = chart.options.scales as unknown as ScalesOptions;
       if (scales.x) {
         scales.x.ticks = { ...(scales.x.ticks || {}), color: '#000000' };
         scales.x.grid = { ...(scales.x.grid || {}), color: 'rgba(0,0,0,0.1)' };
@@ -262,19 +274,19 @@ export default function RatePage() {
         scales.y.grid = { ...(scales.y.grid || {}), color: 'rgba(0,0,0,0.1)' };
       }
     }
-    chart.data.datasets.forEach((ds, i) => {
-      (ds as any).backgroundColor = '#000000';
+    chart.data.datasets.forEach((ds) => {
+      (ds as ChartDataset<'bar', number[]>).backgroundColor = '#000000';
     });
 
     // plugin to paint white background
-    const whiteBackgroundPlugin: any = {
+    const whiteBackgroundPlugin: ChartPlugin<'bar'> = {
       id: 'whiteBackgroundForExport',
-      beforeDraw(c: any) {
-        const ctx = c.ctx;
+      beforeDraw(c) {
+        const ctx = c.ctx as CanvasRenderingContext2D;
         ctx.save();
         ctx.globalCompositeOperation = 'destination-over';
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, c.width, c.height);
+        ctx.fillRect(0, 0, (c as unknown as { width: number }).width, (c as unknown as { height: number }).height);
         ctx.restore();
       },
     };
@@ -289,10 +301,11 @@ export default function RatePage() {
     a.click();
 
     // restore
-    chart.options = originalOptions as any;
+    chart.options = originalOptions;
     chart.config.plugins = originalPlugins;
     chart.data.datasets.forEach((ds, i) => {
-      (ds as any).backgroundColor = originalDatasetColors[i];
+      const restoreColor = originalDatasetColors[i];
+      (ds as ChartDataset<'bar', number[]>).backgroundColor = (restoreColor == null ? undefined : restoreColor) as ChartDataset<'bar', number[]>['backgroundColor'];
     });
     chart.update();
   }
